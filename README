@@ -1,0 +1,77 @@
+Provides a Python function decorator, @json_validate, which validates
+JSON input against a specification.
+
+Example session:
+
+>>> json_structure = required({'must_be_here':str}) + {
+...     'a': int,
+...     'b': float,
+...     'c': str,
+...     'd': [int],
+...     'e': anytype,
+...     'f': {'nested_structure': float},
+...     'g': re.compile('^fo*$'),
+...     'h': one_of({'a': int, 'b': list}),
+...     'i': atleast_one({'a': int, 'b': list}),
+... } + atleast_one({'more_keys': str})
+>>> class C:
+...     @json_validate(json_structure)
+...     def fn(self, input):
+...         print input
+... 
+>>> c = C()
+>>> c.fn({
+...     'must_be_here': 'is here',
+...     'a': 1.0,
+...     'b': 2.5,
+...     'c': 'Hi!',
+...     'd': [1, 2, 3],
+...     'e': [],
+...     'f': {'nested_structure': 5},
+...     'extra_key': 'this is ignored by json_validate',
+...     'g': 'fooooooooo',
+...     'h': {'b':['anything','is','OK','here']},
+...     'i': {'a':1},
+...     'more_keys': ''
+... })
+{'must_be_here': 'is here', 'a': 1.0, 'c': 'Hi!', 'b': 2.5, 'e': [], 'd': [1, 2, 3], 'g': 'fooooooooo', 'f': {'nested_structure': 5}, 'i': {'a': 1}, 'h': {'b': ['anything', 'is', 'OK', 'here']}, 'more_keys': '', 'extra_key': 'this is ignored by json_validate'}
+>>> 
+>>> c.fn({
+...     'must_be_here': 'is here',
+...     'a': 1.0,
+...     'b': 2.5,
+...     'c': 'Hi!',
+...     'd': [1, 2, 3],
+...     'e': [],
+...     'f': {'nested_structure': 5},
+...     'extra_key': 'this is ignored by json_validate',
+...     'g': 'fooooooooo',
+...     'h': {'b':['anything','is','OK','here']},
+...     'i': {'a':1},
+... })
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "json_validate.py", line 455, in validator
+    'h': {'b':['anything','is','OK','here']},
+json_validate.JSONException: client_json requires *at least* one of these keys, but found none: ['more_keys']
+>>> 
+>>> c.fn({
+...     'must_be_here': 'is here',
+...     'a': 1.0,
+...     'b': 2.5,
+...     'c': 'Hi!',
+...     'd': [1, 2, 3],
+...     'e': [],
+...     'f': {'nested_structure': 5},
+...     'extra_key': 'this is ignored by json_validate',
+...     'g': 'fooooooooo',
+...     'h': {'a':1,'b':["shouldn't have both a and b"]},
+...     'i': {'a':1},
+...     'more_keys': ''
+... })
+Traceback (most recent call last):
+  File "<stdin>", line 13, in <module>
+  File "json_validate.py", line 455, in validator
+    'h': {'b':['anything','is','OK','here']},
+json_validate.JSONException: client_json['h'] requires one of these keys: ['a', 'b'], but found several: ['a', 'b']
+
